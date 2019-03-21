@@ -1,4 +1,4 @@
-using MAT, HDF5, JuMP, Gurobi;
+using MAT, JuMP, Gurobi;
 
 function parsefile(file::String) 
     instance = readdlm(file);
@@ -34,12 +34,25 @@ s = sortperm(consts_ids);
 constraints = [consts_objs[s[i]] for i in indexes];
 
 # Extract the number of beamleats of each beam
-beam_ranges = vec(read(matfile, "patient/Beams/ElementIndex"));
-beam_ranges = convert(Array{Int64,1}, beam_ranges);
+beam_sizes = convert(Array{Int64,1}, vec(read(matfile, "patient/Beams/ElementIndex")));
+beam_ranges = beam_sizes;
+for i = 2:length(beam_ranges)
+    beam_ranges[i] += beam_ranges[i-1];
+end
 
 # Read matrixes of dose influence (the A's)
-As = read(file, "data/matrix/A");
-matrixes = [As[i] for i in p_ids];
+As = read(matfile, "data/matrix/A");
+matrixes = [As[i] for i in indexes];
 
 
+open("../sync.txt", "w") do file
+    print(file, 1);
+end
 
+while "2" != (s = open("../sync.txt", "r") do file readstring(file) end)
+    if s == "1"
+        sleep(0.5); # The C++ code corresponding to the metaheuristic is choosing angles
+    else
+        # The angles were chosen by the metaheuristic. Solve the intensity model.
+    end
+end
