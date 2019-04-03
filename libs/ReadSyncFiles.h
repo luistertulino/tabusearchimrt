@@ -1,3 +1,6 @@
+#ifndef READSYNCFILES_H_
+#define READSYNCFILES_H_
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -6,6 +9,9 @@
 #define TS_SLEEP    0
 #define MODEL_SLEEP 1
 #define MODEL_STOP  2
+
+#define RESULT_OK 0
+#define RESULT_NOT_OK -1
 
 using std::string;
 
@@ -16,24 +22,25 @@ const string objs_file    = "../objs.txt";
 
 bool valid_state(int state)
 {
-    return (state == TS_SLEEP or state == MODEL_SLEEP or state == MODEL_SLEEP);
+    return (state == TS_SLEEP or state == MODEL_SLEEP or state == MODEL_STOP);
 }
 
 int set_state(int state)
 {
-    if(not valid_state(state)) return -1;
+    if(not valid_state(state)) return RESULT_NOT_OK;
 
     std::ofstream outfile;
     outfile.open(sync_file, std::ios::out);
     if (outfile.is_open())
     {
+        std::cout << "c++: new state: " << state << "\n";
         outfile << state;
         outfile.close();
-        return 1;
+        return RESULT_OK;
     }
 
     std::cout << "Error in opening sync_file.\n";
-    return -1;
+    return RESULT_NOT_OK;
 }
 
 int state()
@@ -50,41 +57,46 @@ int state()
     else
     {
         std::cout << "Error in opening sync_file.\n";
-        return -1;
+        return RESULT_NOT_OK;
     }
 }
 
-int set_angles(std::vector<int> &beam_set)
+int set_angles(std::vector<int> &beam_set, int set_size)
 {
+    std::cout << "c++: set_angles\n";
     std::ofstream outfile;
     outfile.open(angles_file, std::ios::out);
     if (outfile.is_open())
     {
-        for (auto b : beam_set) outfile << b << " ";
+        outfile << beam_set[0];
+        for (int i = 1; i < set_size; ++i) outfile << " " << beam_set[i];
         outfile.close();
-        return 1;
+        return RESULT_OK;
     }
     else
     {
         std::cout << "Error in opening angles_file.\n";
-        return -1;
+        return RESULT_NOT_OK;
     }
 }
 
-int set_weights(std::vector<double> &weights)
+int set_weights(double weights[], int num_weights)
 {
+    std::cout << "c++: set_weights\n";
     std::ofstream outfile;
     outfile.open(weights_file, std::ios::out);
     if (outfile.is_open())
     {
-        for (auto w : weights) outfile << w << " ";
+        outfile << weights[0];
+        for (int i = 1; i < num_weights; ++i)
+            outfile << " " << weights[i];
         outfile.close();
-        return 1;
+        return RESULT_OK;
     }
     else
     {
         std::cout << "Error in opening weights_file.\n";
-        return -1;
+        return RESULT_NOT_OK;
     }
 }
 
@@ -102,25 +114,26 @@ double get_objs()
     else
     {
         std::cout << "Error in opening objs_file.\n";
-        return -1;
+        return RESULT_NOT_OK;
     }
 }
 
-double get_objs(double objs[], int num_objs=4)
+double get_objs(double objs[], int num_objs=3)
 {
     std::ifstream infile;
     infile.open(objs_file, std::ios::in);
     if (infile.is_open())
     {
         int i = 0.0;
-        double o;
+        double g, o;
+        infile >> g;
         while(infile >> o)
         {
             if (i == num_objs)
             {
                 std::cout << "More objs in objs_file than the correct.\n";
                 infile.close();
-                return -1;
+                return RESULT_NOT_OK;
             }
             objs[i] = o;
             i++;
@@ -130,17 +143,16 @@ double get_objs(double objs[], int num_objs=4)
         if (i < num_objs)
         {
             std::cout << "Less objs in objs_file than the correct.\n";            
-            return -1;
+            return RESULT_NOT_OK;
         }
-        for (int j = 0; j < i; ++j)
-        {
-            std::cout << objs[j] << " ";
-        }
-        return 1;
+        //for (int j = 0; j < i; ++j) std::cout << objs[j] << " ";
+        return g;
     }
     else
     {
         std::cout << "Error in opening objs_file.\n";
-        return -1;
+        return RESULT_NOT_OK;
     }
 }
+
+#endif
