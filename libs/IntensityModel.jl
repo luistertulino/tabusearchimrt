@@ -16,13 +16,13 @@ end
 function readangles() # Read the selected angles
     angles = Array{Int64,1}();
     n_angles = 0;
-    if isfile("../angles.txt")
-        angles = vec(convert(Array{Int64,2}, readdlm("../angles.txt")));
+    if isfile("angles.txt")
+        angles = vec(convert(Array{Int64,2}, readdlm("angles.txt")));
         n_angles = length(angles);
 
         return (angles, n_angles);
     else
-        open("../sync.txt", "w") do file
+        open("sync.txt", "w") do file
             print(file, "-1");
         end
         return (-1,-1);
@@ -31,7 +31,7 @@ end
 
 function changestate(state::Int64)
     println("julia: changing state to ", state);
-    open("../sync.txt", "w") do file
+    open("sync.txt", "w") do file
         print(file, state);
     end
 end
@@ -97,8 +97,8 @@ function solvemodel(l_stru::Int64,
     end
     # Read weights for objective function
     w_t_p = w_t_n = w_o_p = 0;
-    if isfile("../weights.txt")
-        ws = readdlm("../weights.txt", Float64);
+    if isfile("weights.txt")
+        ws = readdlm("weights.txt", Float64);
         (w_o_p, w_t_p, w_t_n) = (ws[1,1], ws[1,2], ws[1,3]);
     else
         println("ERROR ON WEIGHTS!!!");
@@ -111,7 +111,7 @@ function solvemodel(l_stru::Int64,
     if final_report    
     end
 
-    open("../objs.txt", "w") do file
+    open("objs.txt", "w") do file
         print(file, getobjectivevalue(m), " ", 
                     getvalue(organs_p_dev), " ", 
                     getvalue(tumor_p_dev), " ", 
@@ -126,6 +126,7 @@ end
 ######################################### MAIN PROGRAM ########################################
 
 function main()
+    println("start julia program.");
     changestate(0); # The C++ will not try to send any beam set while the state is 0
 
     (indexes, structures, types) = parsefile(ARGS[1]);
@@ -167,7 +168,7 @@ function main()
     changestate(1);
 
     # This program ends when there's a "2" in sync file
-    while "2" != (s = open("../sync.txt", "r") do file readstring(file) end)
+    while "2" != (s = open("sync.txt", "r") do file readstring(file) end)
         if s == "1"
             println("julia: sleep");
             sleep(0.5); # The C++ code corresponding to the metaheuristic is choosing angles

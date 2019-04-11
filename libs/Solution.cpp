@@ -39,4 +39,5 @@ void Solution::print()
     std::cout << "\nRemaining beams: ";
     for (int i = 0; i < num_not_used; ++i) std::cout << other_beams[i] << " ";
     std::cout << "\n";
+    
 }

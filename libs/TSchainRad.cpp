@@ -56,7 +56,7 @@ int TSchainRad::init()
     time_t begin;
     time(&begin);
 
-    //current.obj = model->objective_function(current);
+    current.obj = solve_model(current);
     if (current.obj == RESULT_NOT_OK)
         return RESULT_NOT_OK;
     
@@ -71,13 +71,16 @@ int TSchainRad::init()
     for (int i = 0; i < num_beams; ++i) is_selected[i] = false;
 
     print_structures(tabu_list, num_times_used, num_beams, current, best);
-    // Initialization is going well!
-    //std::set<int> leaving_sel, entering_sel;
+    
+    return RESULT_OK;
+
+    /* --------------- TESTED INTERACTION BETWEEN PROGRAMS UNTIL THIS POINT --------------- */
+
     /* 
       Structure to maintain the chain of movements.
       We also use a pointer to indicate which was the last movement that implied the biggest global improvement
     */
-    /*
+    
     std::list< std::pair<int,int> > chain;
     auto last_best = chain.end();
     
@@ -95,34 +98,35 @@ int TSchainRad::init()
 
         int last_best_obj = current.obj;
 
-        /* Ejection chain
-           The number of movements is limited by the minimum between number of beams on/off solution.
+        /* 
+            Ejection chain
+            The number of movements is limited by the minimum between number of beams in and out of solution.
 
-           Important detail: during a ejection chain, a component solution that enters must no leave.
+            Important detail: during a ejection chain, a component solution that enters must not leave.
         */
-        /*while(i < min and j < max_falhas)
+        std::uniform_int_distribution<int> rand_l(0,current.num_used-1);
+        std::uniform_int_distribution<int> rand_e(0,current.num_not_used-1);
+        
+        while(i < min and j < max_fails)
         {
             // Select a beam to leave solution
-            int l = random_component(current.num_used);
-            while( is_selected[ s.beam_set[l] ] ) l = random_component(current.num_used);
-            is_selected[ s.beam_set[l] ] = true;
-            //while(leaving_sel.count(l) != 0){ l = random_component(current.num_used); }
-            //leaving_sel.insert(l);
+            int l = rand_l(gen);
+            while( is_selected[ current.beam_set[l] ] ) l = rand_l(gen);
+            is_selected[ current.beam_set[l] ] = true;
 
             // Select a beam to enter the in solution
-            int e = random_component(current.num_not_used);
-            while( is_selected[ s.other_beams[e] ] ) e = random_component(current.num_not_used);
-            is_selected[ s.other_beams[e] ] = true;
-            //while(entering_sel.count(e) != 0){ e = random_component(current.num_not_used); }
-            //entering_sel.insert(l);
+            int e = rand_e(gen);
+            while( is_selected[ current.other_beams[e] ] ) e = rand_e(gen);
+            is_selected[ current.other_beams[e] ] = true;
 
             current.swap_beams(l,e);
-            double new_obj = model->objective_function(current); // Modify later to include weights
+            double new_obj = solve_model(current); // Modify later to include weights
 
             if (new_obj == RESULT_NOT_OK) return RESULT_NOT_OK;
 
             // This movement is inserted into the chain
-            bool is_tabu = isTabu(current.beam_set[l], current.other_beams[e], tabu_list, it);
+            bool is_tabu = isTabu(current.beam_set[l], current.other_beams[e], 
+                                  tabu_list, num_beams, tabu_tenure, it);
 
             // Check tabu condition
             if (new_obj < best.obj)
@@ -137,7 +141,7 @@ int TSchainRad::init()
                 last_best = chain.begin();
                 last_best_obj = new_obj;
             }
-            else if (!is_tabu)
+            else if (not is_tabu)
             {
                 // When the new solution improves only the current solution, 
                 // the movement is considered only if it's not tabu
@@ -160,9 +164,9 @@ int TSchainRad::init()
         if (last_best == chain.end())
         {
             // No movement was able to improve the solution
-            int r = random_solution(current, num_times_used);
+            int r = random_solution(gen, current, num_beams, min_beams, max_beams, num_times_used);
             if(r != RESULT_OK) return r;
-            current.obj = model->objective_function(current);
+            current.obj = solve_model(current);
 
             if (current.obj == RESULT_NOT_OK) return RESULT_NOT_OK;
 
@@ -186,7 +190,7 @@ int TSchainRad::init()
             {
                 int l = current.beam_set[itc->first];
                 int e = current.beam_set[itc->second];
-                make_tabu(l, e, tabu_list, it);
+                make_tabu(l, e, tabu_list, num_beams, it);
             }
 
             if (improvement) best = current;
@@ -206,11 +210,11 @@ int TSchainRad::init()
         time(&now);
     }
 
-    double g = model->objective_function(best, 1);
+    double g = solve_model(best);
     if (g == RESULT_NOT_OK) return RESULT_NOT_OK;
     best.obj = g;
 
-    if (write_solution(best) != RESULT_OK) return RESULT_NOT_OK;*/
+    if (write_solution(best) != RESULT_OK) return RESULT_NOT_OK;
 
     // It seems to work until here  
     return RESULT_OK;    
