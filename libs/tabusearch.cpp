@@ -1,8 +1,13 @@
 #include <random>
+#include <iostream>
+#include <fstream>
+#include <iomanip> // for std::setprecision
+#include <string>
 
 #include "tabusearch.h"
 
 /* ------- TESTED ------- */
+/*
 int random_component(std::mt19937 &gen, int n)
 {
     // This method selects a component solution (it can be used for leaving or entering)
@@ -12,18 +17,21 @@ int random_component(std::mt19937 &gen, int n)
     int a = distribution(gen);
     return a;
 }
+*/
 
-/* ------- TESTED ------- */
+/* ---------------------------------------------------- */
+/* -------------- TABU SEARCH FUNCTIONS --------------- */
+/* ---------------------------------------------------- */
+
 int random_solution(std::mt19937 &gen, Solution &s, 
                     int size, int min, int max, 
                     int num_times_used[])
 {
     std::cout << "begin random_solution\n";
     int fitness[size];
-    for (int i = 0; i < size; ++i) fitness[i] = 1;
-        // The probability of a beam being selected can deacrease if desired (num_times_used != 0)
-        // If this diversification is not desired, all beams have uniform probability
-
+    
+    // The probability of a beam being selected can deacrease if desired (num_times_used != 0)
+    // If this diversification is not desired, all beams have uniform probability
     if (num_times_used != 0)
     {
         std::cout << "num_times_used != 0\n\n";
@@ -31,6 +39,7 @@ int random_solution(std::mt19937 &gen, Solution &s,
         for (int i = 0; i < size; ++i)
             fitness[i] = usage - num_times_used[i];
     }
+    else for (int i = 0; i < size; ++i) fitness[i] = 1;
     
     bool is_selected[size];
     for (int i = 0; i < size; ++i) is_selected[i] = false;
@@ -43,12 +52,6 @@ int random_solution(std::mt19937 &gen, Solution &s,
         nb = n_b(gen);
     }
     std::cout << "num beams = " << nb << "\n";
-
-    std::cout << "fitness:";
-    for (int i = 0; i < size; ++i)
-    {
-        std::cout << " " << fitness[i];
-    }
     
     // Select the beam set
     std::discrete_distribution<int> r_beam(fitness, fitness+size);
@@ -84,31 +87,57 @@ int random_solution(std::mt19937 &gen, Solution &s,
     return RESULT_OK;
 }
 
-/* ------- TESTED ------- */
 void init_tabu_list(int tabu_list[], int size, int tenure, int num_times_used[])
 {
     for (int i = 0; i < size; i++)
     {
-        for (int j = i+1; j < size; j++)
-            tabu_list[i*size+j] = -tenure - 1;
+        for (int j = 0; j < size; j++)
+            tabu_list[i*size+j] = 0;
         if(num_times_used != 0) num_times_used[i] = 0;
-
-        // The diagonal will store the iteration at which the insertion/removal of the element i was done
-        tabu_list[i*size+i] = -tenure;
     }
 }
 
 bool isTabu(int l, int e, int tabu_list[], int size, int tenure, int it)
 {
-    if(e < l) std::swap(e,l);
-
-    if (tabu_list[(l-1)*size+(e-1)] + tenure >= it)
+    if (tabu_list[(l-1)*size+(e-1)] > it)
         return true;
     return false;
 }
 
-void make_tabu(int l, int e, int tabu_list[], int size, int it)
+void make_tabu(int l, int e, int tabu_list[], int size, int tenure, int it)
 {
-    if(e < l) std::swap(e,l);
-    tabu_list[(l-1)*size+(e-1)] = it;
+    tabu_list[(l-1)*size+(e-1)] = it + tenure;
+    tabu_list[(e-1)*size+(l-1)] = it + tenure;
+}
+
+/* ---------------------------------------------------- */
+/* --------------- AUXILIARY FUNCTIONS ---------------- */
+/* ---------------------------------------------------- */
+
+int write_solution(Solution &s, std::string &outfile, std::string &beamfile)
+{
+    std::ofstream r_outfile, b_outfile;
+    r_outfile.open(outfile, std::ios::app);
+    b_outfile.open(beamfile, std::ios::app);
+
+    if(r_outfile.is_open() and b_outfile.is_open())
+    {
+        //outfile << tabu_tenure << " " << max_falhas << "\n";
+        b_outfile << s.beam_set[0];
+        for (int i = 1; i < s.num_used; ++i) b_outfile << " " << s.beam_set[i];
+        b_outfile << "\n";
+
+        r_outfile << std::fixed << std::setprecision(15); // 15 decimal places
+        r_outfile << s.obj << " ";
+        r_outfile << s.functions[ORGANS_OBJ] << " ";
+        r_outfile << s.functions[TUMOR_POS_OBJ] << " ";
+        r_outfile << s.functions[TUMOR_NEG_OBJ] << "\n";
+    }
+    else
+    {
+        std::cout << "Error in opening result files.\n";
+        return RESULT_NOT_OK;
+    }
+
+    return RESULT_OK;
 }

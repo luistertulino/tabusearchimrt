@@ -1,10 +1,10 @@
 #ifndef TSCHAINRAD_H_
 #define TSCHAINRAD_H_
 
-//const std::string rfile = "results.txt";
-
 #include <iostream>
 #include <fstream>
+#include <list>
+#include <utility> // for std::pair
 
 #include "tabusearch.h"
 #include "model.h"
@@ -17,7 +17,8 @@ struct parameters
     int tabu_tenure;
     //int changing_factor;
     int max_fails;
-    std::string results_file;
+    std::string outfile;
+    std::string beamfile;
 };
 
 class TSchainRad
@@ -29,7 +30,8 @@ class TSchainRad
     int tabu_tenure;
     //int changing_factor;
     int max_fails;
-    std::string results_file;    
+    std::string outfile;
+    std::string beamfile;   
 
     TSchainRad();
     TSchainRad(parameters &p)
@@ -45,24 +47,11 @@ class TSchainRad
         min_beams = p.min_beams;
         max_beams = p.max_beams;
 
-        results_file = p.results_file + "results.txt";
-
-        //std::cout << "num_beams: " << num_beams << std::endl;
-        //min_beams = model.min_beams;
-        //std::cout << "min_beams: " << min_beams << std::endl;
-        //max_beams = model.max_beams;
-        //std::cout << "max_beams: " << max_beams << std::endl;
+        outfile = p.outfile;
+        beamfile = p.beamfile;
     }
 
-    // Tabu search functions
-    int init();
-    //int random_solution(Solution &s, int num_times_used[]);
-    //void init_tabu_list(int tabu_list[], int num_times_used[]);
-    //bool isTabu(int l, int e, int tabu_list[], int it);
-    //void make_tabu(int l, int e, int tabu_list[], int it);
-    
-    // Write result in a file
-    int write_solution(Solution &s);
+    int init(); // Tabu search functions
 };
 
 #endif
