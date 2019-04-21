@@ -29,7 +29,7 @@ function readangles() # Read the selected angles
     end
 end
 
-function changestate(state::Int64)
+function changestate(state::String)
     println("julia: changing state to ", state);
     open("sync.txt", "w") do file
         print(file, state);
@@ -126,8 +126,11 @@ end
 ######################################### MAIN PROGRAM ########################################
 
 function main()
+    TS_SLEEP = "0";
+    MODEL_SLEEP = "1";
+    MODEL_STOP = "2";
     println("start julia program.");
-    changestate(0); # The C++ will not try to send any beam set while the state is 0
+    changestate(TS_SLEEP); # The C++ will not try to send any beam set while the state is 0
 
     (indexes, structures, types) = parsefile(ARGS[1]);
 
@@ -165,11 +168,11 @@ function main()
     n_voxels = [size(As[i])[1] for i in indexes];
     close(matfile);
 
-    changestate(1);
+    changestate(MODEL_SLEEP);
 
     # This program ends when there's a "2" in sync file
-    while "2" != (s = open("sync.txt", "r") do file readstring(file) end)
-        if s == "1"
+    while MODEL_STOP != (s = open("sync.txt", "r") do file readstring(file) end)
+        if s == MODEL_SLEEP
             println("julia: sleep");
             sleep(0.5); # The C++ code corresponding to the metaheuristic is choosing angles
             println("julia: end of sleep");
@@ -182,7 +185,7 @@ function main()
             println("julia: starting model");
             solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, n_voxels, constraints, angles, n_angles, types);
             println("julia: end model");
-            changestate(1);
+            changestate(MODEL_SLEEP);
         end
     end
 
