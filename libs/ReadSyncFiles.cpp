@@ -125,7 +125,6 @@ double get_objs(double objs[], int num_objs)
             std::cout << "Less objs in objs_file than the correct.\n";            
             return RESULT_NOT_OK;
         }
-        //for (int j = 0; j < i; ++j) std::cout << objs[j] << " ";
         return g;
     }
     else

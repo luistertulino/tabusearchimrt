@@ -18,7 +18,7 @@ void ready()
 double solve_model(Solution &s, int report)
 {
     // Weights used in Obal's Thesis
-    double weights[NUM_OBJS] = {0.2, 0.0, 0.8};
+    double weights[NUM_OBJS] = {0.2, 0.4, 0.4};
     return solve_model(s, weights, report);
 }
 
