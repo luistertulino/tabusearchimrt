@@ -36,6 +36,15 @@ function changestate(state::String)
     end
 end
 
+function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64)
+    open("objs.txt", "w") do file
+        print(file, obj, " ", 
+                    organs, " ", 
+                    tumor_p, " ", 
+                    tumor_n);
+    end
+end
+
 function solvemodel(l_stru::Int64,
                     beam_sizes::Array{Int64,1}, 
                     beam_ranges::Array{Int64,1},
@@ -55,19 +64,29 @@ function solvemodel(l_stru::Int64,
     @variable(m, beamlet_dose[ i=1:n_angles, j=1:beam_sizes[angles[i]] ] >= 0);
 
     # Variables corresponding to the dose deviation on voxels
-
     @variable(m, positive_dev[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
-
     @variable(m, negative_dev[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
 
+    # Variables of dose on voxels
     @variable(m, dose[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
+
     ################################### Creating constraints ###################################
 
     @constraints(m, begin
         # Constraint that equates the dose on a voxel to the corresponding product
-        dose_calc[ i=1:l_stru, j=1:n_voxels[i] ], dose[i,j] == sum(matrixes[i][j,bl] 
-                                                                    for b in angles 
-                                                                        for bl in beam_ranges[b]:beam_ranges[b+1])
+        dose_calc[ i=1:l_stru, j=1:n_voxels[i] ], 
+            dose[i,j] == sum(matrixes[i][j,beam_ranges[angles[b]]+bl-1] * beamlet_dose[b,bl]
+                            for b in 1:n_angles 
+                                for bl in 1:beam_sizes[angles[b]]
+                            )
+        #=
+          matrixes[i] contains the dose matrix for structure i
+          matrixes[i][j] contains the dose influence of all beamlets on voxel j of structure i
+          matrixes[i][j,beam_ranges[angles[b]]+bl-1] is dose influence of beamlet bl of beam indexed by b (angles[b]) on
+                                                     voxel j of structure i
+
+          beam_sizes[angles[b]] is the number of beamlets of beam indexed by b (angles[b])
+        =#
     end);
 
     @constraints(m, begin
@@ -95,6 +114,7 @@ function solvemodel(l_stru::Int64,
             println("ERROR ON TYPE!!!");
         end
     end
+
     # Read weights for objective function
     w_t_p = w_t_n = w_o_p = 0;
     if isfile("weights.txt")
@@ -111,12 +131,7 @@ function solvemodel(l_stru::Int64,
     if final_report    
     end
 
-    open("objs.txt", "w") do file
-        print(file, getobjectivevalue(m), " ", 
-                    getvalue(organs_p_dev), " ", 
-                    getvalue(tumor_p_dev), " ", 
-                    getvalue(tumor_n_dev));
-    end
+    return (getobjectivevalue(m), getvalue(organs_p_dev), getvalue(tumor_p_dev), getvalue(tumor_n_dev));
 end
 
 ####################################### END OF FUNCTIONS ######################################
@@ -130,12 +145,14 @@ function main()
     MODEL_SLEEP = "1";
     MODEL_STOP = "2";
     println("start julia program.");
-    changestate(TS_SLEEP); # The C++ will not try to send any beam set while the state is 0
+    changestate(TS_SLEEP); # The C++ program will not try to send any beam set while the state is 0
 
+    # Read test case description
     (indexes, structures, types) = parsefile(ARGS[1]);
 
     file = replace(ARGS[1], ".txt", ".mat");
 
+    ######################## READ TEST CASE DATA ########################
     matfile = matopen(file);
     problem = read(matfile, "problem");
 
@@ -143,7 +160,8 @@ function main()
         We want the constraints corresponding to the ids informed in the .txt file.
         To do this, the 'dataID', 'IsConstraint' and 'Objective' data are retrived.
         Then, only the ids and objectives refering to constraints are considered.
-        Since the IDs aren't sorted, we obtain a permutation of the indexes of ids array to find where are the ids used in the problem.
+        Since the IDs aren't sorted, we obtain a permutation of the indexes of ids array 
+            to find where are the ids used in the problem.
         Finally, the correponding objectives are selected.
     =#
     ids = vec(problem["dataID"]);
@@ -157,7 +175,7 @@ function main()
     # Extract the number of beamleats of each beam
     beam_sizes = convert(Array{Int64,1}, vec(read(matfile, "patient/Beams/ElementIndex")));
     beam_ranges = [1; beam_sizes];
-    for i = 3:length(beam_ranges)
+    for i = 2:length(beam_ranges)
         beam_ranges[i] += beam_ranges[i-1];
     end
     beam_number = length(beam_sizes);
@@ -167,6 +185,7 @@ function main()
     matrixes = [As[i] for i in indexes];
     n_voxels = [size(As[i])[1] for i in indexes];
     close(matfile);
+    ######################## READ TEST CASE DATA ########################
 
     changestate(MODEL_SLEEP);
 
@@ -183,14 +202,15 @@ function main()
                 break;
             end
             println("julia: starting model");
-            solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, n_voxels, constraints, angles, n_angles, types);
+            (obj,organs,tumor_p,tumor_n) = solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, 
+                                                        n_voxels, constraints, angles, n_angles, types);
+            writeobjs(obj,organs,tumor_p,tumor_n);
             println("julia: end model");
             changestate(MODEL_SLEEP);
         end
     end
 
     println("julia: ending program.");
-
 end
 
 main();
