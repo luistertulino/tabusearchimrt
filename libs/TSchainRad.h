@@ -31,7 +31,9 @@ class TSchainRad
     //int changing_factor;
     int max_fails;
     std::string outfile;
-    std::string beamfile;   
+    std::string beamfile;
+
+    double final_obj;   
 
     TSchainRad();
     TSchainRad(parameters &p)

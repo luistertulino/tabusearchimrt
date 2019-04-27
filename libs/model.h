@@ -6,7 +6,7 @@
 
 #define SLEEP 500 // in miliseconds
 
-void ready();
+void wait();
 
 double solve_model(Solution &s, double weights[], int report=0);
 

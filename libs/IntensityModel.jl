@@ -30,7 +30,6 @@ function readangles() # Read the selected angles
 end
 
 function changestate(state::String)
-    println("julia: changing state to ", state);
     open("sync.txt", "w") do file
         print(file, state);
     end
@@ -144,7 +143,6 @@ function main()
     TS_SLEEP = "0";
     MODEL_SLEEP = "1";
     MODEL_STOP = "2";
-    println("start julia program.");
     changestate(TS_SLEEP); # The C++ program will not try to send any beam set while the state is 0
 
     # Read test case description
@@ -192,25 +190,20 @@ function main()
     # This program ends when there's a "2" in sync file
     while MODEL_STOP != (s = open("sync.txt", "r") do file readstring(file) end)
         if s == MODEL_SLEEP
-            println("julia: sleep");
             sleep(0.5); # The C++ code corresponding to the metaheuristic is choosing angles
-            println("julia: end of sleep");
         else
             # The angles were chosen by the metaheuristic. Solve the intensity model.
             (angles, n_angles) = readangles();
             if n_angles == -1 # Something went wrong in reading angles
                 break;
             end
-            println("julia: starting model");
             (obj,organs,tumor_p,tumor_n) = solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, 
                                                         n_voxels, constraints, angles, n_angles, types);
             writeobjs(obj,organs,tumor_p,tumor_n);
-            println("julia: end model");
             changestate(MODEL_SLEEP);
         end
     end
 
-    println("julia: ending program.");
 end
 
 main();

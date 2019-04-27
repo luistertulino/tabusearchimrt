@@ -53,12 +53,10 @@ int TSchainRad::init()
         return r;
     }
 
-    time_t begin;
-    time(&begin);
+    time_t begin; time(&begin);
 
     current.obj = solve_model(current);
-    if (current.obj == RESULT_NOT_OK)
-        return RESULT_NOT_OK;
+    if (current.obj == RESULT_NOT_OK) return RESULT_NOT_OK;
     
     best = current;
     for (int i = 0; i < current.num_used; i++)
@@ -70,13 +68,10 @@ int TSchainRad::init()
     bool is_selected[num_beams];
     for (int i = 0; i < num_beams; ++i) is_selected[i] = false;
 
-    print_structures(tabu_list, num_times_used, num_beams, current, best);
-    
     /* 
       Structure to maintain the chain of movements.
       We also use a pointer to indicate which was the last movement that implied the biggest global improvement
-    */
-    
+    */    
     Chain chain;
     auto last_best = chain.end();
     
@@ -84,7 +79,6 @@ int TSchainRad::init()
 
     while(difftime(now,begin) < max_time)
     {
-        std::cout << "------------------------------------------------------------------------------\niteration " << it << "\n";
         int eit = 0, fails = 0;
         int min = std::min(current.num_used, current.num_not_used);
         int last_best_obj = current.obj;
@@ -92,23 +86,21 @@ int TSchainRad::init()
 
         std::uniform_int_distribution<int> rand_l(0,current.num_used-1);
         std::uniform_int_distribution<int> rand_e(0,current.num_not_used-1);
-        /* 
-            Ejection chain
-            The number of movements is limited by the minimum between number of beams in and out of solution.
 
-            Important detail: during a ejection chain, a component solution that enters must leave not.
+        /* 
+          Ejection chain
+          The number of movements is limited by the minimum between number of beams in and out of solution.
+          Important detail: during a ejection chain, a component solution that enters must leave not.
         */
         while(eit < min and fails < max_fails)
         {
             // Select a beam to leave solution
             int l = rand_l(gen);
-            int a = 0;
             while( is_selected[ current.beam_set[l]-1 ] ) l = rand_l(gen);
             is_selected[ current.beam_set[l]-1 ] = true;
 
             // Select a beam to enter the in solution
             int e = rand_e(gen);
-            int b = 0;
             while( is_selected[ current.other_beams[e]-1 ] ) e = rand_e(gen);
             is_selected[ current.other_beams[e]-1 ] = true;
 
@@ -130,8 +122,7 @@ int TSchainRad::init()
                 improvement = true;
 
                 auto move = std::make_pair(l,e);
-                chain.insert(chain.begin(), move);
-                last_best = chain.begin();
+                last_best = chain.insert(chain.begin(), move);
                 last_best_obj = new_obj;
             }
             else if (not is_tabu)
@@ -162,12 +153,11 @@ int TSchainRad::init()
         }
         
         if (last_best == chain.end())
-        {
+        {   // The ejection chain didn't made a improvement, so we generate a new random solution
             int r = random_solution(gen, current, num_beams, min_beams, max_beams, num_times_used);
-            if(r != RESULT_OK) return r;
+            if(r == RESULT_NOT_OK) return RESULT_NOT_OK;
             current.obj = solve_model(current);
             if (current.obj == RESULT_NOT_OK) return RESULT_NOT_OK;
-
             if(current.obj < best.obj) best = current;
         }
         else
@@ -200,9 +190,6 @@ int TSchainRad::init()
         last_best = chain.end();
         for (int i = 0; i < num_beams; ++i) is_selected[i] = false;
 
-        std::cout << "\n";
-        print_structures(tabu_list, num_times_used, num_beams, current, best);
-
         it++; //no++;
         time(&now);
     }
@@ -210,6 +197,7 @@ int TSchainRad::init()
     double g = solve_model(best);
     if (g == RESULT_NOT_OK) return RESULT_NOT_OK;
     best.obj = g;
+    final_obj = g;
 
     if (write_solution(best, outfile, beamfile) != RESULT_OK) return RESULT_NOT_OK;
 

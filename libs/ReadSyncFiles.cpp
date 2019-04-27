@@ -13,7 +13,6 @@ int set_state(int state)
     outfile.open(sync_file, std::ios::out);
     if (outfile.is_open())
     {
-        std::cout << "c++: new state: " << state << "\n";
         outfile << state;
         outfile.close();
         return RESULT_OK;
@@ -43,7 +42,6 @@ int state()
 
 int set_angles(std::vector<int> &beam_set, int set_size)
 {
-    std::cout << "c++: set_angles\n";
     std::ofstream outfile;
     outfile.open(angles_file, std::ios::out);
     if (outfile.is_open())
@@ -62,7 +60,6 @@ int set_angles(std::vector<int> &beam_set, int set_size)
 
 int set_weights(double weights[], int num_weights)
 {
-    std::cout << "c++: set_weights\n";
     std::ofstream outfile;
     outfile.open(weights_file, std::ios::out);
     if (outfile.is_open())

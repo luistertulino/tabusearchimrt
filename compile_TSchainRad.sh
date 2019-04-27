@@ -1,0 +1,1 @@
+g++ -std=c++11 src/main.cpp libs/*.cpp -o exes/main
