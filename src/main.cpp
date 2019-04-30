@@ -45,7 +45,5 @@ int main(int argc, char const *argv[])
     int s = set_state(MODEL_STOP);
     pclose(f);
 
-
-
     return 0;
 }

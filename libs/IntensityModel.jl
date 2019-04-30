@@ -57,8 +57,6 @@ function solvemodel(l_stru::Int64,
                     types::Array{Int64,1},
                     final_report::Bool=false)
 
-    println("solvemodel");
-
     #m = Model(solver=GurobiSolver(OutputFlag=0));
     m = Model(solver=GurobiSolver(OutputFlag=0, GUROBI_ENV));
 
