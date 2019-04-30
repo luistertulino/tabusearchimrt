@@ -1,5 +1,7 @@
 using MAT, JuMP, Gurobi;
 
+const GUROBI_ENV = Gurobi.Env(); # Permanent environment for gurobi
+
 ########################################## FUNCTIONS ##########################################
 
 function parsefile(file::String) # Read the file with id and name of the structures
@@ -55,10 +57,13 @@ function solvemodel(l_stru::Int64,
                     types::Array{Int64,1},
                     final_report::Bool=false)
 
-    m = Model(solver=GurobiSolver(OutputFlag=0));
+    println("solvemodel");
+
+    #m = Model(solver=GurobiSolver(OutputFlag=0));
+    m = Model(solver=GurobiSolver(OutputFlag=0, GUROBI_ENV));
 
     #################################### Creating variables ####################################
-
+    
     # Variables corresponding to the dose on the beamlets of selected beams
     @variable(m, beamlet_dose[ i=1:n_angles, j=1:beam_sizes[angles[i]] ] >= 0);
 
@@ -68,9 +73,9 @@ function solvemodel(l_stru::Int64,
 
     # Variables of dose on voxels
     @variable(m, dose[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
-
+    
     ################################### Creating constraints ###################################
-
+    
     @constraints(m, begin
         # Constraint that equates the dose on a voxel to the corresponding product
         dose_calc[ i=1:l_stru, j=1:n_voxels[i] ], 
@@ -95,7 +100,7 @@ function solvemodel(l_stru::Int64,
     end);
     
     ############################# Defining the objective functions #############################
-
+    
     # Auxiliary expressions corresponding to each of the original objective functions
     tumor_p_dev  = AffExpr();
     tumor_n_dev  = AffExpr();
@@ -113,7 +118,7 @@ function solvemodel(l_stru::Int64,
             println("ERROR ON TYPE!!!");
         end
     end
-
+    
     # Read weights for objective function
     w_t_p = w_t_n = w_o_p = 0;
     if isfile("weights.txt")
@@ -124,7 +129,6 @@ function solvemodel(l_stru::Int64,
     end
 
     @objective(m, Min, w_o_p*organs_p_dev + w_t_p*tumor_p_dev + w_t_n*tumor_n_dev);
-
     solve(m);
 
     if final_report    
@@ -185,7 +189,7 @@ function main()
     close(matfile);
     ######################## READ TEST CASE DATA ########################
 
-    changestate(MODEL_SLEEP);
+    changestate(MODEL_SLEEP);    
 
     # This program ends when there's a "2" in sync file
     while MODEL_STOP != (s = open("sync.txt", "r") do file readstring(file) end)
@@ -197,6 +201,7 @@ function main()
             if n_angles == -1 # Something went wrong in reading angles
                 break;
             end
+            
             (obj,organs,tumor_p,tumor_n) = solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, 
                                                         n_voxels, constraints, angles, n_angles, types);
             writeobjs(obj,organs,tumor_p,tumor_n);
