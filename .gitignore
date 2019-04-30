@@ -1,6 +1,2 @@
 testcases/*.mat
 testcases/*.txt
-sync.txt
-weights.txt
-angles.txt
-objs.txt
