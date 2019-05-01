@@ -1,0 +1,13 @@
+1 Isocentre 1
+2 PTV 1
+3 Stomach 2
+4 SpinalCord' 2
+5 Heart 2
+6 Oesophagus 2
+7 Duodenum 2
+8 Pancreas 2
+9 Bowels 2
+10 ExternalRing 2
+11 LiverMinusCTV 2
+12 Kidney(R) 2
+13 Kidney(L) 2
