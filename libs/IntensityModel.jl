@@ -11,9 +11,9 @@ const GUROBI_ENV = Gurobi.Env(); # Permanent environment for gurobi
 
 function parsefile(file::String) # Read the file with id and name of the structures
     instance = readdlm(file);
-    indexes = instance[1:end,1];
-    structures = instance[1:end,2];
-    types = instance[1:end,3];
+    indexes = instance[2:end,1];
+    structures = instance[2:end,2];
+    types = instance[2:end,3];
     indexes = convert(Array{Int64,1}, indexes);
     structures = convert(Array{String,1}, structures);
     types = convert(Array{Int64,1}, types);

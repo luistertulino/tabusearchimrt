@@ -25,7 +25,7 @@ int main(int argc, char const *argv[])
     p.num_beams = 15;
     p.min_beams = 1;
     p.max_beams = 15;
-    p.max_time = 30;
+    p.max_time = 3600;
     p.tabu_tenure = std::stoi(argv[3]);
     p.max_fails = std::stoi(argv[4]);
     p.outfile  = "results/"+testcase+"/objs." +std::to_string(execn)+".txt";
