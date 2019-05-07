@@ -20,19 +20,21 @@ int main(int argc, char const *argv[])
     }
 
     std::string testcase(argv[1]);
-    std::string command = "julia libs/IntensityModel.jl testcases/"+testcase+".txt";
-    FILE *f = popen(command.c_str(), "w");
-
     int execn = std::stoi(argv[2]);
     parameters p;
     p.num_beams = 15;
     p.min_beams = 1;
     p.max_beams = 15;
-    p.max_time = 3600;
+    p.max_time = 30;
     p.tabu_tenure = std::stoi(argv[3]);
     p.max_fails = std::stoi(argv[4]);
     p.outfile  = "results/"+testcase+"/objs." +std::to_string(execn)+".txt";
     p.beamfile = "results/"+testcase+"/beams."+std::to_string(execn)+".txt";
+
+    modify_file_names(testcase, std::string(argv[2]));
+
+    std::string command = "julia libs/IntensityModel.jl "+testcase+" "+std::string(argv[2]);
+    FILE *f = popen(command.c_str(), "w");    
 
     TSchainRad ts(p);    
     int result = ts.init();

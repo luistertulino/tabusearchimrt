@@ -1,5 +1,10 @@
 using MAT, JuMP, Gurobi;
 
+sync_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".sync.txt";
+angles_file  = "env/" * ARGS[1] * "." * ARGS[2] * ".angles.txt";
+objs_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".objs.txt";
+weights_file = "env/" * ARGS[1] * "." * ARGS[2] * ".weights.txt";
+
 const GUROBI_ENV = Gurobi.Env(); # Permanent environment for gurobi
 
 ########################################## FUNCTIONS ##########################################
@@ -18,13 +23,13 @@ end
 function readangles() # Read the selected angles
     angles = Array{Int64,1}();
     n_angles = 0;
-    if isfile("angles.txt")
-        angles = vec(convert(Array{Int64,2}, readdlm("angles.txt")));
+    if isfile(angles_file)
+        angles = vec(convert(Array{Int64,2}, readdlm(angles_file)));
         n_angles = length(angles);
 
         return (angles, n_angles);
     else
-        open("sync.txt", "w") do file
+        open(sync_file, "w") do file
             print(file, "-1");
         end
         return (-1,-1);
@@ -32,13 +37,13 @@ function readangles() # Read the selected angles
 end
 
 function changestate(state::String)
-    open("sync.txt", "w") do file
+    open(sync_file, "w") do file
         print(file, state);
     end
 end
 
 function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64)
-    open("objs.txt", "w") do file
+    open(objs_file, "w") do file
         print(file, obj, " ", 
                     organs, " ", 
                     tumor_p, " ", 
@@ -119,8 +124,8 @@ function solvemodel(l_stru::Int64,
     
     # Read weights for objective function
     w_t_p = w_t_n = w_o_p = 0;
-    if isfile("weights.txt")
-        ws = readdlm("weights.txt", Float64);
+    if isfile(weights_file)
+        ws = readdlm(weights_file, Float64);
         (w_o_p, w_t_p, w_t_n) = (ws[1,1], ws[1,2], ws[1,3]);
     else
         println("ERROR ON WEIGHTS!!!");
@@ -145,15 +150,16 @@ function main()
     TS_SLEEP = "0";
     MODEL_SLEEP = "1";
     MODEL_STOP = "2";
+
     changestate(TS_SLEEP); # The C++ program will not try to send any beam set while the state is 0
 
     # Read test case description
-    (indexes, structures, types) = parsefile(ARGS[1]);
+    (indexes, structures, types) = parsefile("testcases/" * ARGS[1] * ".txt");
 
-    file = replace(ARGS[1], ".txt", ".mat");
+    #file = replace(ARGS[1], ".txt", ".mat");
 
     ######################## READ TEST CASE DATA ########################
-    matfile = matopen(file);
+    matfile = matopen("testcases/" * ARGS[1] * ".mat");
     problem = read(matfile, "problem");
 
     #=
@@ -190,7 +196,7 @@ function main()
     changestate(MODEL_SLEEP);    
 
     # This program ends when there's a "2" in sync file
-    while MODEL_STOP != (s = open("sync.txt", "r") do file readstring(file) end)
+    while MODEL_STOP != (s = open(sync_file, "r") do file readstring(file) end)
         if s == MODEL_SLEEP
             sleep(0.5); # The C++ code corresponding to the metaheuristic is choosing angles
         else

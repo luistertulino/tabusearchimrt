@@ -1,11 +1,11 @@
+#ifndef TABUSEARCH_H_
+#define TABUSEARCH_H_
+
 #include <random>
 #include <string>
 
 #include "Solution.h"
 #include "ReadSyncFiles.h"
-
-#ifndef TABUSEARCH_H_
-#define TABUSEARCH_H_
 
 //int random_component(std::mt19937 &gen, int n);
 
