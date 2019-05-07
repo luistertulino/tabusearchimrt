@@ -8,6 +8,8 @@
 
 #include "../libs/TSchainRad.h"
 
+// best configuration found by irace tenure = 2, max_fails = 1
+
 int main(int argc, char const *argv[])
 {
     if (argc <= 1)
