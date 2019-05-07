@@ -1,5 +1,14 @@
 #include "ReadSyncFiles.h"
 
+#include <string>
+
+using std::string;
+
+string sync_file    = "sync.txt";
+string angles_file  = "angles.txt";
+string weights_file = "weights.txt";
+string objs_file    = "objs.txt";
+
 bool valid_state(int state)
 {
     return (state == TS_SLEEP or state == MODEL_SLEEP or state == MODEL_STOP);
@@ -129,4 +138,12 @@ double get_objs(double objs[], int num_objs)
         std::cout << "Error in opening objs_file.\n";
         return RESULT_NOT_OK;
     }
+}
+
+void modify_file_names(const string &testcase, const string &execn)
+{
+    sync_file    = "env/" + testcase + "." + execn + "." + sync_file;
+    angles_file  = "env/" + testcase + "." + execn + "." + angles_file;
+    weights_file = "env/" + testcase + "." + execn + "." + weights_file;
+    objs_file    = "env/" + testcase + "." + execn + "." + objs_file;
 }

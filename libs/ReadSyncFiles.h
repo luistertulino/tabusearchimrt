@@ -15,10 +15,10 @@
 
 using std::string;
 
-const string sync_file    = "sync.txt";
-const string angles_file  = "angles.txt";
-const string weights_file = "weights.txt";
-const string objs_file    = "objs.txt";
+extern string sync_file;
+extern string angles_file;
+extern string weights_file;
+extern string objs_file;
 
 bool valid_state(int state);
 
@@ -33,5 +33,7 @@ int set_weights(double weights[], int num_weights);
 double get_objs();
 
 double get_objs(double objs[], int num_objs=3);
+
+void modify_file_names(const string &testcase, const string &execn);
 
 #endif
