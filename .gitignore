@@ -1,6 +1,9 @@
+results/*
+!results/.gitkeep
 testcases/*.mat
 experimento_assimetrico.sh
 ideia
 m.sh
 runner.sh
 src/obal.cpp
+env/*.txt
