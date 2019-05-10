@@ -27,8 +27,9 @@ void make_tabu(int l, int e, int tabu_list[], int size, int tenure, int it);
 /* --------------- AUXILIARY FUNCTIONS ---------------- */
 /* ---------------------------------------------------- */
 
-int write_solution(Solution &s, std::string &outfile, std::string &beamfile); // Write results in a file
+int write_solution(Solution &s, int avals, 
+				   std::string &objsfile, std::string &beamfile, std::string &avalfile); // Write results in a file
 int send_obj_to_irace(std::string &testcase, 
-					   int tenure, int fails, int exec, double obj); // Write final objective to file used by irace
+					  int tenure, int fails, int exec, double obj); // Write final objective to file used by irace
 
 #endif

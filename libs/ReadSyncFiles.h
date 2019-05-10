@@ -6,9 +6,10 @@
 #include <string>
 #include <vector>
 
-#define TS_SLEEP    0
-#define MODEL_SLEEP 1
-#define MODEL_STOP  2
+#define TS_SLEEP         0
+#define MODEL_SLEEP      1
+#define MODEL_STOP       2
+#define TS_SLEEP_REPORT 82 // ASCII code for character 'R'
 
 #define RESULT_OK 0
 #define RESULT_NOT_OK -1

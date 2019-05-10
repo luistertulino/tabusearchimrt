@@ -8,6 +8,8 @@
 #include <ctime> // for measure elapsed time
 #include <numeric> // for accumulate
 
+#define REPORT 1
+
 typedef std::pair< int,int > move;
 typedef std::list< move > Chain;
 
@@ -55,7 +57,7 @@ int TSchainRad::init()
 
     time_t begin; time(&begin);
 
-    current.obj = solve_model(current);
+    current.obj = solve_model(current); num_avals++;
     if (current.obj == RESULT_NOT_OK) return RESULT_NOT_OK;
     
     best = current;
@@ -106,6 +108,7 @@ int TSchainRad::init()
 
             current.swap_beams(l,e);
             double new_obj = solve_model(current); // Modify later to include weights
+            num_avals++;
 
             if (new_obj == RESULT_NOT_OK) return RESULT_NOT_OK;
 
@@ -156,7 +159,7 @@ int TSchainRad::init()
         {   // The ejection chain didn't made a improvement, so we generate a new random solution
             int r = random_solution(gen, current, num_beams, min_beams, max_beams, num_times_used);
             if(r == RESULT_NOT_OK) return RESULT_NOT_OK;
-            current.obj = solve_model(current);
+            current.obj = solve_model(current); num_avals++;
             if (current.obj == RESULT_NOT_OK) return RESULT_NOT_OK;
             if(current.obj < best.obj) best = current;
         }
@@ -194,12 +197,12 @@ int TSchainRad::init()
         time(&now);
     }
 
-    double g = solve_model(best);
+    double g = solve_model(best, REPORT);
     if (g == RESULT_NOT_OK) return RESULT_NOT_OK;
     best.obj = g;
-    final_obj = g;
+    final_obj = best.obj;
 
-    if (write_solution(best, outfile, beamfile) != RESULT_OK) return RESULT_NOT_OK;
+    if (write_solution(best, num_avals, objsfile, beamfile, avalfile) != RESULT_OK) return RESULT_NOT_OK;
 
     // It seems to work until here  
     return RESULT_OK;    

@@ -95,14 +95,17 @@ void make_tabu(int l, int e, int tabu_list[], int size, int tenure, int it)
 /* --------------- AUXILIARY FUNCTIONS ---------------- */
 /* ---------------------------------------------------- */
 
-int write_solution(Solution &s, std::string &outfile, std::string &beamfile)
+int write_solution(Solution &s, int avals, 
+                   std::string &objsfile, std::string &beamfile, std::string &avalfile)
 {
-    std::ofstream r_outfile, b_outfile;
-    r_outfile.open(outfile, std::ios::app);
+    std::ofstream r_outfile, b_outfile, a_outfile;
+    r_outfile.open(objsfile, std::ios::app);
     b_outfile.open(beamfile, std::ios::app);
+    a_outfile.open(avalfile, std::ios::app);
 
-    if(r_outfile.is_open() and b_outfile.is_open())
+    if(r_outfile.is_open() and b_outfile.is_open() and a_outfile.is_open())
     {
+        a_outfile << avals;
         b_outfile << s.beam_set[0];
         for (int i = 1; i < s.num_used; ++i) b_outfile << " " << s.beam_set[i];
         b_outfile << "\n";
@@ -112,6 +115,8 @@ int write_solution(Solution &s, std::string &outfile, std::string &beamfile)
         r_outfile << s.functions[ORGANS_OBJ] << " ";
         r_outfile << s.functions[TUMOR_POS_OBJ] << " ";
         r_outfile << s.functions[TUMOR_NEG_OBJ] << "\n";
+
+        r_outfile.close(); b_outfile.close(); a_outfile.close();
     }
     else
     {

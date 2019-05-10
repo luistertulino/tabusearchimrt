@@ -25,11 +25,12 @@ int main(int argc, char const *argv[])
     p.num_beams = 15;
     p.min_beams = 1;
     p.max_beams = 15;
-    p.max_time = 3600;
+    p.max_time = 3;
     p.tabu_tenure = std::stoi(argv[3]);
     p.max_fails = std::stoi(argv[4]);
-    p.outfile  = "results/"+testcase+"/objs." +std::to_string(execn)+".txt";
+    p.objsfile = "results/"+testcase+"/objs." +std::to_string(execn)+".txt";
     p.beamfile = "results/"+testcase+"/beams."+std::to_string(execn)+".txt";
+    p.avalfile = "results/"+testcase+"/avals."+std::to_string(execn)+".txt";
 
     modify_file_names(testcase, std::string(argv[2]));
 
@@ -41,9 +42,7 @@ int main(int argc, char const *argv[])
     if(result == RESULT_OK)
     {
         if (!!argv[5] and std::string(argv[5]) == "use_irace")
-        {
             send_obj_to_irace(testcase, p.tabu_tenure, p.max_fails, execn, ts.final_obj);
-        }
     } 
         
     int s = set_state(MODEL_STOP);

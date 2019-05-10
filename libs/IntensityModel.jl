@@ -1,9 +1,13 @@
 using MAT, JuMP, Gurobi;
 
-sync_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".sync.txt";
-angles_file  = "env/" * ARGS[1] * "." * ARGS[2] * ".angles.txt";
-objs_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".objs.txt";
-weights_file = "env/" * ARGS[1] * "." * ARGS[2] * ".weights.txt";
+# Files for synchronization of execution
+const sync_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".sync.txt";
+const angles_file  = "env/" * ARGS[1] * "." * ARGS[2] * ".angles.txt";
+const objs_file    = "env/" * ARGS[1] * "." * ARGS[2] * ".objs.txt";
+const weights_file = "env/" * ARGS[1] * "." * ARGS[2] * ".weights.txt";
+
+# File for reporting more complex results of intensity model
+const report_file  = "results/" * ARGS[1] * "/report." * ARGS[2] * ".txt";
 
 const GUROBI_ENV = Gurobi.Env(); # Permanent environment for gurobi
 
@@ -18,6 +22,48 @@ function parsefile(file::String) # Read the file with id and name of the structu
     structures = convert(Array{String,1}, structures);
     types = convert(Array{Int64,1}, types);
     return (indexes, structures, types);
+end
+
+function readtestcase(case::String)
+    # Read test case description
+    (indexes, structures, types) = parsefile("testcases/" * case * ".txt");
+
+    ######################## READ TEST CASE DATA ########################
+    matfile = matopen("testcases/" * case * ".mat");
+    problem = read(matfile, "problem");
+
+    #=
+        We want the constraints corresponding to the ids informed in the .txt file.
+        To do this, the 'dataID', 'IsConstraint' and 'Objective' data are retrived.
+        Then, only the ids and objectives refering to constraints are considered.
+        Since the IDs aren't sorted, we obtain a permutation of the indexes of ids array 
+            to find where are the ids used in the problem.
+        Finally, the correponding objectives are selected.
+    =#
+    ids = vec(problem["dataID"]);
+    consts = vec(problem["IsConstraint"]);
+    objs = vec(problem["Objective"]);
+    consts_objs = [objs[i] for i in 1:length(ids) if consts[i] == true];
+    consts_ids  = [ids[i]  for i in 1:length(ids) if consts[i] == true];
+    s = sortperm(consts_ids);
+    constraints = [consts_objs[s[i]] for i in indexes];
+
+    # Extract the number of beamleats of each beam
+    beam_sizes = convert(Array{Int64,1}, vec(read(matfile, "patient/Beams/ElementIndex")));
+    beam_ranges = [1; beam_sizes];
+    for i = 2:length(beam_ranges)
+        beam_ranges[i] += beam_ranges[i-1];
+    end
+    beam_number = length(beam_sizes);
+
+    # Read matrixes of dose influence (the A's)
+    As = read(matfile, "data/matrix/A");
+    matrixes = [As[i] for i in indexes];
+    n_voxels = [size(As[i])[1] for i in indexes];
+    close(matfile);
+
+    return (indexes, structures, types, beam_sizes, beam_ranges, matrixes, 
+            n_voxels, constraints);
 end
 
 function readangles() # Read the selected angles
@@ -36,13 +82,13 @@ function readangles() # Read the selected angles
     end
 end
 
-function changestate(state::String)
+function changestate(state::String) # Change the state
     open(sync_file, "w") do file
         print(file, state);
     end
 end
 
-function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64)
+function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64) # Write the objective functions to the file
     open(objs_file, "w") do file
         print(file, obj, " ", 
                     organs, " ", 
@@ -51,7 +97,44 @@ function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Flo
     end
 end
 
-function solvemodel(l_stru::Int64,
+function finalreport(l_stru::Int64,
+                     n_voxels::Array{Int64,1},
+                     dose::JuMP.JuMPDict{JuMP.Variable,2},
+                     positive_dev::JuMP.JuMPDict{JuMP.Variable,2},
+                     negative_dev::JuMP.JuMPDict{JuMP.Variable,2})
+    println("final_report");
+    #=for i in 1:l_stru
+        meandose = getvalue( sum( dose[i,1:n_voxels[i]] ) ) / n_voxels[i];
+    end=#
+    
+    doses  = getvalue(dose);
+    posdev = getvalue(positive_dev);
+    negdev = getvalue(negative_dev);
+    for i in 1:l_stru
+        meandose = mean(doses[i,:]); # Mean dose on organ i
+        stdvdose = stdm(doses[i,:], mean_dose); # Standard deviation of dose on organ i
+        abovepresc = count(x->x>constraints[i],  doses[i,:]); # Number of voxels whose dose is above the prescription
+        belowpresc = count(x->x<=constraints[i], doses[i,:]); # Number of voxels whose dose is below the prescription
+        meanposdev = mean(posdev[i,:]); # Mean positive dose deviation on organ i
+        stdvposdev = stdm(posdev[i,:], meanposdev); # Standard deviation of positive dose deviation on organ i
+        meannegdev = mean(negdev[i,:]); # Mean negative dose deviation on organ i
+        stdvnegdev = stdm(negdev[i,:], meanposdev); # Standard deviation of negative dose deviation on organ i
+        open(report_file, "a") do file
+            print(file, structures[i], " ",
+                        meandose,      " ",
+                        stdvdose,      " ",
+                        abovepresc,    " ",
+                        belowpresc,    " ",
+                        meanposdev,    " ",
+                        stdvposdev,    " ",
+                        meannegdev,    " ",
+                        stdvnegdev,    "\n");
+        end
+    end
+    
+end
+
+function solvemodel(l_stru::Int64, # Solve the intensity model
                     beam_sizes::Array{Int64,1}, 
                     beam_ranges::Array{Int64,1},
                     matrixes::Array{AbstractArray{T,2} where T,1},
@@ -60,7 +143,8 @@ function solvemodel(l_stru::Int64,
                     angles::Array{Int64,1}, 
                     n_angles::Int64, 
                     types::Array{Int64,1},
-                    final_report::Bool=false)
+                    structures::Array{String,1},
+                    final_report::Bool=false) 
 
     #m = Model(solver=GurobiSolver(OutputFlag=0));
     m = Model(solver=GurobiSolver(OutputFlag=0, GUROBI_ENV));
@@ -76,6 +160,9 @@ function solvemodel(l_stru::Int64,
 
     # Variables of dose on voxels
     @variable(m, dose[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
+
+    println(typeof(positive_dev));
+    println(typeof(dose));
     
     ################################### Creating constraints ###################################
     
@@ -98,7 +185,7 @@ function solvemodel(l_stru::Int64,
 
     @constraints(m, begin
         #Constraint that equates the dose on a voxel to the prescription plus and minus the deviations
-        dose_prescription[ i=1:l_stru, j=1:n_voxels[i]],
+        dose_prescription[ i=1:l_stru, j=1:n_voxels[i] ],
         dose[i,j] == constraints[i] + positive_dev[i,j] - negative_dev[i,j]
     end);
     
@@ -134,7 +221,8 @@ function solvemodel(l_stru::Int64,
     @objective(m, Min, w_o_p*organs_p_dev + w_t_p*tumor_p_dev + w_t_n*tumor_n_dev);
     solve(m);
 
-    if final_report    
+    if final_report
+        finalreport(l_stru, n_voxels, dose, positive_dev, negative_dev);
     end
 
     return (getobjectivevalue(m), getvalue(organs_p_dev), getvalue(tumor_p_dev), getvalue(tumor_n_dev));
@@ -150,48 +238,13 @@ function main()
     TS_SLEEP = "0";
     MODEL_SLEEP = "1";
     MODEL_STOP = "2";
+    REPORT = "82";
 
     changestate(TS_SLEEP); # The C++ program will not try to send any beam set while the state is 0
 
-    # Read test case description
-    (indexes, structures, types) = parsefile("testcases/" * ARGS[1] * ".txt");
-
-    #file = replace(ARGS[1], ".txt", ".mat");
-
-    ######################## READ TEST CASE DATA ########################
-    matfile = matopen("testcases/" * ARGS[1] * ".mat");
-    problem = read(matfile, "problem");
-
-    #=
-        We want the constraints corresponding to the ids informed in the .txt file.
-        To do this, the 'dataID', 'IsConstraint' and 'Objective' data are retrived.
-        Then, only the ids and objectives refering to constraints are considered.
-        Since the IDs aren't sorted, we obtain a permutation of the indexes of ids array 
-            to find where are the ids used in the problem.
-        Finally, the correponding objectives are selected.
-    =#
-    ids = vec(problem["dataID"]);
-    consts = vec(problem["IsConstraint"]);
-    objs = vec(problem["Objective"]);
-    consts_objs = [objs[i] for i in 1:length(ids) if consts[i] == true];
-    consts_ids  = [ids[i]  for i in 1:length(ids) if consts[i] == true];
-    s = sortperm(consts_ids);
-    constraints = [consts_objs[s[i]] for i in indexes];
-
-    # Extract the number of beamleats of each beam
-    beam_sizes = convert(Array{Int64,1}, vec(read(matfile, "patient/Beams/ElementIndex")));
-    beam_ranges = [1; beam_sizes];
-    for i = 2:length(beam_ranges)
-        beam_ranges[i] += beam_ranges[i-1];
-    end
-    beam_number = length(beam_sizes);
-
-    # Read matrixes of dose influence (the A's)
-    As = read(matfile, "data/matrix/A");
-    matrixes = [As[i] for i in indexes];
-    n_voxels = [size(As[i])[1] for i in indexes];
-    close(matfile);
-    ######################## READ TEST CASE DATA ########################
+    # Read test case data
+    (indexes, structures, types, beam_sizes, beam_ranges, 
+        matrixes, n_voxels, constraints) = readtestcase(ARGS[1]);
 
     changestate(MODEL_SLEEP);    
 
@@ -207,7 +260,8 @@ function main()
             end
             
             (obj,organs,tumor_p,tumor_n) = solvemodel(length(structures), beam_sizes, beam_ranges, matrixes, 
-                                                        n_voxels, constraints, angles, n_angles, types);
+                                                      n_voxels, constraints, angles, n_angles, types,
+                                                      structures, (s == REPORT) );
             writeobjs(obj,organs,tumor_p,tumor_n);
             changestate(MODEL_SLEEP);
         end

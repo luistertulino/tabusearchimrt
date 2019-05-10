@@ -17,8 +17,9 @@ struct parameters
     int tabu_tenure;
     //int changing_factor;
     int max_fails;
-    std::string outfile;
+    std::string objsfile;
     std::string beamfile;
+    std::string avalfile;
 };
 
 class TSchainRad
@@ -28,29 +29,31 @@ class TSchainRad
     int max_iterations, max_no_imp; // This will not be used
     double max_time;
     int tabu_tenure;
-    //int changing_factor;
     int max_fails;
-    std::string outfile;
+    std::string objsfile;
     std::string beamfile;
+    std::string avalfile;
 
-    double final_obj;   
+    double final_obj;
+    int num_avals;   
 
     TSchainRad();
     TSchainRad(parameters &p)
     {
-        //max_iterations = p.max_iterations;
-        //max_no_imp = p.max_no_imp;
         max_time = p.max_time;
         tabu_tenure = p.tabu_tenure;
-        //changing_factor = p.changing_factor;
         max_fails = p.max_fails;
 
         num_beams = p.num_beams;
         min_beams = p.min_beams;
         max_beams = p.max_beams;
 
-        outfile = p.outfile;
+        objsfile = p.objsfile;
         beamfile = p.beamfile;
+        avalfile = p.avalfile;
+
+        final_obj = 0.0;
+        num_avals = 0;
     }
 
     int init(); // Tabu search functions

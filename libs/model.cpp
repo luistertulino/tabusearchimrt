@@ -35,7 +35,8 @@ double solve_model(Solution &s, double weights[], int report)
     }
 
     // The tabu search will wait until the intensity model on Julia program is solved
-    r = set_state(TS_SLEEP);
+    int state = (report == 0) ? TS_SLEEP : TS_SLEEP_REPORT;
+    r = set_state(state);
     if (r == RESULT_NOT_OK)
     {
         std::cout << "Error in setting state to 0.\n";

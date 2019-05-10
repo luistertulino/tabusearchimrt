@@ -11,7 +11,10 @@ string objs_file    = "objs.txt";
 
 bool valid_state(int state)
 {
-    return (state == TS_SLEEP or state == MODEL_SLEEP or state == MODEL_STOP);
+    return (state == TS_SLEEP    or 
+            state == MODEL_SLEEP or 
+            state == MODEL_STOP  or 
+            state == TS_SLEEP_REPORT);
 }
 
 int set_state(int state)
