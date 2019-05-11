@@ -97,28 +97,36 @@ function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Flo
     end
 end
 
+function makearray(line::Int64, size::Int64, jumpvar::JuMP.JuMPDict{JuMP.Variable,2})
+    array = Array{Float64,1}();
+    for i = 1:size
+        array = [array; getvalue(jumpvar[line,i])];
+    end
+    return array;
+end
+
 function finalreport(l_stru::Int64,
                      n_voxels::Array{Int64,1},
+                     constraints::Array{Float64,1},
+                     structures::Array{String,1},
                      dose::JuMP.JuMPDict{JuMP.Variable,2},
                      positive_dev::JuMP.JuMPDict{JuMP.Variable,2},
                      negative_dev::JuMP.JuMPDict{JuMP.Variable,2})
     println("final_report");
-    #=for i in 1:l_stru
-        meandose = getvalue( sum( dose[i,1:n_voxels[i]] ) ) / n_voxels[i];
-    end=#
     
-    doses  = getvalue(dose);
-    posdev = getvalue(positive_dev);
-    negdev = getvalue(negative_dev);
     for i in 1:l_stru
-        meandose = mean(doses[i,:]); # Mean dose on organ i
-        stdvdose = stdm(doses[i,:], mean_dose); # Standard deviation of dose on organ i
-        abovepresc = count(x->x>constraints[i],  doses[i,:]); # Number of voxels whose dose is above the prescription
-        belowpresc = count(x->x<=constraints[i], doses[i,:]); # Number of voxels whose dose is below the prescription
-        meanposdev = mean(posdev[i,:]); # Mean positive dose deviation on organ i
-        stdvposdev = stdm(posdev[i,:], meanposdev); # Standard deviation of positive dose deviation on organ i
-        meannegdev = mean(negdev[i,:]); # Mean negative dose deviation on organ i
-        stdvnegdev = stdm(negdev[i,:], meanposdev); # Standard deviation of negative dose deviation on organ i
+        dose_i   = makearray(i, n_voxels[i], dose);
+        posdev_i = makearray(i, n_voxels[i], positive_dev);
+        negdev_i = makearray(i, n_voxels[i], negative_dev);
+        
+        meandose = mean(dose_i); # Mean dose on organ i
+        stdvdose = n_voxels[i] == 1 ? 0.0 : stdm(dose_i, meandose); # Standard deviation of dose on organ i
+        abovepresc = count(x->x>constraints[i],  dose_i); # Number of voxels whose dose is above the prescription
+        belowpresc = count(x->x<=constraints[i], dose_i); # Number of voxels whose dose is below the prescription
+        meanposdev = mean(posdev_i); # Mean positive dose deviation on organ i
+        stdvposdev = n_voxels[i] == 1 ? 0.0 : stdm(posdev_i, meanposdev); # Standard deviation of positive dose deviation on organ i
+        meannegdev = mean(negdev_i); # Mean negative dose deviation on organ i
+        stdvnegdev = n_voxels[i] == 1 ? 0.0 : stdm(negdev_i, meannegdev); # Standard deviation of negative dose deviation on organ i
         open(report_file, "a") do file
             print(file, structures[i], " ",
                         meandose,      " ",
@@ -130,6 +138,7 @@ function finalreport(l_stru::Int64,
                         meannegdev,    " ",
                         stdvnegdev,    "\n");
         end
+    
     end
     
 end
@@ -160,9 +169,6 @@ function solvemodel(l_stru::Int64, # Solve the intensity model
 
     # Variables of dose on voxels
     @variable(m, dose[ i=1:l_stru, j=1:n_voxels[i] ] >= 0);
-
-    println(typeof(positive_dev));
-    println(typeof(dose));
     
     ################################### Creating constraints ###################################
     
@@ -222,7 +228,7 @@ function solvemodel(l_stru::Int64, # Solve the intensity model
     solve(m);
 
     if final_report
-        finalreport(l_stru, n_voxels, dose, positive_dev, negative_dev);
+        finalreport(l_stru, n_voxels, constraints, structures, dose, positive_dev, negative_dev);
     end
 
     return (getobjectivevalue(m), getvalue(organs_p_dev), getvalue(tumor_p_dev), getvalue(tumor_n_dev));
