@@ -25,7 +25,11 @@ int main(int argc, char const *argv[])
     p.num_beams = 15;
     p.min_beams = 4;
     p.max_beams = 4;
+<<<<<<< HEAD
     p.maxtime = 3600;
+=======
+    p.maxtime = 3;
+>>>>>>> ca3b5b6342d0b8eadd8df5a59948492acac52afc
     p.num_neighbors = 10;
     p.tabutenure = std::stoi(argv[3]);
     p.objsfile = "resultsobal/"+testcase+"/objs." +std::to_string(execn)+".txt";

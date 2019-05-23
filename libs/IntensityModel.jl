@@ -8,6 +8,7 @@ const weights_file = "env/" * ARGS[1] * "." * ARGS[2] * ".weights.txt";
 
 # File for reporting more complex results of intensity model
 const report_file  = "results/" * ARGS[1] * "/report." * ARGS[2] * ".txt";
+const beamletdose_file = "results/" * ARGS[1] * "/beamletdose." * ARGS[2] * ".txt";
 
 const GUROBI_ENV = Gurobi.Env(); # Permanent environment for gurobi
 
@@ -88,7 +89,8 @@ function changestate(state::String) # Change the state
     end
 end
 
-function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64) # Write the objective functions to the file
+function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Float64)
+# Write the objective functions to the file
     open(objs_file, "w") do file
         print(file, obj, " ", 
                     organs, " ", 
@@ -98,9 +100,9 @@ function writeobjs(obj::Float64, organs::Float64, tumor_p::Float64, tumor_n::Flo
 end
 
 function makearray(line::Int64, size::Int64, jumpvar::JuMP.JuMPDict{JuMP.Variable,2})
-    array = Array{Float64,1}();
+    array = Array{Float64,1}(size);
     for i = 1:size
-        array = [array; getvalue(jumpvar[line,i])];
+        array[i] = getvalue(jumpvar[line,i]);
     end
     return array;
 end
@@ -112,7 +114,6 @@ function finalreport(l_stru::Int64,
                      dose::JuMP.JuMPDict{JuMP.Variable,2},
                      positive_dev::JuMP.JuMPDict{JuMP.Variable,2},
                      negative_dev::JuMP.JuMPDict{JuMP.Variable,2})
-    println("final_report");
     
     for i in 1:l_stru
         dose_i   = makearray(i, n_voxels[i], dose);
@@ -137,11 +138,12 @@ function finalreport(l_stru::Int64,
                         stdvposdev,    " ",
                         meannegdev,    " ",
                         stdvnegdev,    "\n");
-        end
-    
-    end
-    
+        end    
+    end  
+
 end
+
+function
 
 function solvemodel(l_stru::Int64, # Solve the intensity model
                     beam_sizes::Array{Int64,1}, 
