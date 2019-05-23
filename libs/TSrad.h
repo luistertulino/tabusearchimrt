@@ -12,8 +12,8 @@
 struct parameters
 {
     int num_beams, min_beams, max_beams;
-    double max_time;
-    int tabu_tenure;
+    double maxtime;
+    int tabutenure;
     int num_neighbors;
     std::string objsfile;
     std::string beamfile;
@@ -24,8 +24,8 @@ class TSrad
 {
   public:
     int num_beams, min_beams, max_beams;
-    double max_time;
-    int tabu_tenure;
+    double maxtime;
+    int tabutenure;
     int num_neighbors;
     std::string objsfile;
     std::string beamfile;
@@ -34,11 +34,11 @@ class TSrad
     double final_obj;
     int num_avals;   
 
-    TSchainRad();
-    TSchainRad(parameters &p)
+    TSrad();
+    TSrad(parameters &p)
     {
-        max_time = p.max_time;
-        tabu_tenure = p.tabu_tenure;
+        maxtime = p.maxtime;
+        tabutenure = p.tabutenure;
         num_neighbors = p.num_neighbors;
 
         num_beams = p.num_beams;
