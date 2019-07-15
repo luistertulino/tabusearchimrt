@@ -33,6 +33,14 @@ class Solution
         obj = 0.0;
     }
 
+    Solution(int min, int max, int numB, std::vector<int> &bs)
+    {
+        beam_set.resize(max, 0);
+        other_beams.resize(numB-min, 0);
+        obj = 0.0;
+        for(int i = 0; i < bs.size(); i++) beam_set[i] = bs[i];
+    }
+
     Solution & operator=(Solution &other);
 
     void swap_beams(int l, int e);

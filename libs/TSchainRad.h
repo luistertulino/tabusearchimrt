@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <vector>
 #include <utility> // for std::pair
 
 #include "tabusearch.h"
@@ -57,6 +58,7 @@ class TSchainRad
     }
 
     int init(); // Tabu search functions
+    int evaluate_solution(std::vector<int> &beam_set);
 };
 
 #endif

@@ -10,26 +10,26 @@
 
 // tenure = 2
 
+void read_objs_beams(const string &filename, int &beams);
+
 int main(int argc, char const *argv[])
 {
     if (argc <= 1)
     {
         std::cout << "Not the right number of parameters!!!\n";
-        std::cout << "It must be: ./main testcase_name execution_number tabu_tenure [use_irace]\n";
+        std::cout << "It must be: ./main testcase_name execution_number tabu_tenure\n";
         return -1;
     }
 
     std::string testcase(argv[1]);
     int execn = std::stoi(argv[2]);
     parameters p;
-    p.num_beams = 15;
-    p.min_beams = 4;
+    //p.num_beams = 15;
+    read_objs_beams("testcases/"+testcase+".txt", p.num_beams);
+    p.min_beams = 1;
     p.max_beams = 4;
-<<<<<<< HEAD
     p.maxtime = 3600;
-=======
     p.maxtime = 3;
->>>>>>> ca3b5b6342d0b8eadd8df5a59948492acac52afc
     p.num_neighbors = 10;
     p.tabutenure = std::stoi(argv[3]);
     p.objsfile = "resultsobal/"+testcase+"/objs." +std::to_string(execn)+".txt";
@@ -43,14 +43,20 @@ int main(int argc, char const *argv[])
 
     TSrad ts(p);    
     int result = ts.init();
-    /*if(result == RESULT_OK)
-    {
-        if (!!argv[5] and std::string(argv[5]) == "use_irace")
-            send_obj_to_irace(testcase, p.tabutenure, p.maxfails, execn, ts.final_obj);
-    }*/ 
         
     int s = set_state(MODEL_STOP);
     pclose(f);
 
     return 0;
+}
+
+void read_objs_beams(const std::string &filename, int &beams)
+{
+    std::ifstream infile;
+    infile.open(filename, std::ios::in);
+    if (infile.is_open())
+    {
+        infile >> beams;
+        infile.close();
+    }
 }

@@ -143,7 +143,19 @@ function finalreport(l_stru::Int64,
 
 end
 
-function
+function write_beamletdose(beamlet_dose::JuMP.JuMPDict{JuMP.Variable,2},
+                           angles::Array{Int64,1},
+                           beam_sizes::Array{Int64,1},
+                           beam_ranges::Array{Int64,1})
+    
+    open(beamletdose_file, "w") do file
+        for b in 1:length(angles)
+            for bl in 1:beam_sizes[angles[b]]
+                println(file, getvalue(beamlet_dose[b,bl]));
+            end
+        end
+    end
+end
 
 function solvemodel(l_stru::Int64, # Solve the intensity model
                     beam_sizes::Array{Int64,1}, 
@@ -157,7 +169,6 @@ function solvemodel(l_stru::Int64, # Solve the intensity model
                     structures::Array{String,1},
                     final_report::Bool=false) 
 
-    #m = Model(solver=GurobiSolver(OutputFlag=0));
     m = Model(solver=GurobiSolver(OutputFlag=0, GUROBI_ENV));
 
     #################################### Creating variables ####################################
@@ -231,6 +242,7 @@ function solvemodel(l_stru::Int64, # Solve the intensity model
 
     if final_report
         finalreport(l_stru, n_voxels, constraints, structures, dose, positive_dev, negative_dev);
+        write_beamletdose(beamlet_dose, angles, beam_sizes, beam_ranges);
     end
 
     return (getobjectivevalue(m), getvalue(organs_p_dev), getvalue(tumor_p_dev), getvalue(tumor_n_dev));

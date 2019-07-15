@@ -38,6 +38,19 @@ void print_structures(int tabu_list[], int num_times_used[],
     std::cout << "\n\n";
 }
 
+int TSchainRad::evaluate_solution(std::vector<int> &beam_set)
+{
+    Solution s(min_beams, max_beams, num_beams, beam_set);
+    s.num_used = beam_set.size();
+    double g = solve_model(s, REPORT);
+    if(g == RESULT_NOT_OK)
+    {
+        std::cout << "Error in evaluate solution.\n";
+        return RESULT_NOT_OK;
+    }
+    return RESULT_OK;
+}
+
 int TSchainRad::init()
 {
     int tabu_list[num_beams*num_beams];
@@ -207,3 +220,4 @@ int TSchainRad::init()
     // It seems to work until here  
     return RESULT_OK;    
 }
+
