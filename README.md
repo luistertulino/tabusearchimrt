@@ -1,7 +1,7 @@
 # Tabu Search IMRT
 Tabu search code for Geometry and Intensity problems in IMRT.
 
-The code in this repository implements 2 algorithms: TSchainRad (see 1) and TSrad (see 2). Both of the algorithms use C++11 for the Geometry Problem part and Julia 0.6.4 por the Intensity Problem part.
+The code in this repository implements 2 algorithms: TSchainRad (see 1) and TSrad (see 2). Both of the algorithms use C++11 for the Geometry Problem part and Julia 0.6.4 for the Intensity Problem part.
 
 ### Compiling
 TSchainRad: just execute the script ``compile_TSchainRad.sh``.
